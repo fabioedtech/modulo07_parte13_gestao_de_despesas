@@ -16,7 +16,8 @@ Content-Type: application/json
 
 {
     "id": null,
-    "name":"Lazer"
+    "name":"Educação",
+    "user_id":1
 }
 ###
 POST http://localhost:3000/create-expense HTTP/1.1
@@ -32,7 +33,7 @@ Content-Type: application/json
 }
 ###
 
-GET http://localhost:3000/get-categories
+GET http://localhost:3000/get-categories/user/2
 
 ###
 
@@ -40,10 +41,22 @@ GET http://localhost:3000/get-users
 
 ###
 
-GET http://localhost:3000/get-category/7
+GET http://localhost:3000/get-category/user/1/category/4
 
 ###
 
-GET http://localhost:3000/get-user/7
+GET http://localhost:3000/get-user/1
+
+###
+
+GET http://localhost:3000/get-expenses/user/1
+
+###
+
+GET http://localhost:3000/get-expenses/user/1/category/1
+
+###
+
+GET http://localhost:3000/get-expenses/user/1/expense/2
 
 ###
