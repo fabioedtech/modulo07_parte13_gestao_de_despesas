@@ -7,7 +7,13 @@ const TABLES_DIR = './tables';
 app.use(express.json());
 
 app.get('/', (req, res) => {
-    res.send('</h1>FUNCIONANDO</h1>');
+    let html = '';
+    html += '<select id="categories">';
+    html += '   <option value="1">Alimentação</option>';
+    html += '   <option value="2">Farmácia</option>';
+    html += '   <option value="3">Lazer</option>';
+    html += '</select>';
+    res.send(`</h1>FUNCIONANDO</h1><br /> ${html}`);
 });
 
 
@@ -55,6 +61,7 @@ app.post('/create-user', (req, res) => {
     {
         "id": null,
         "name":"Categoria X",
+        "user_id":1
     }
 */
 app.post('/create-category', (req, res) => {
@@ -121,21 +128,26 @@ app.post('/create-expense', async (req, res) => {
 
 /*
     Method: GET
-    Retorna as categorias de despesas
+    Retorna as categorias de despesas vinculadas ao usuário + despesas padrão (user_id = 0)
     Modelo JSON:
     [
         {
             "id": null,
             "name":"Categoria X",
+            "user_id":1
         }
     ]
-
+    /get-categories/user/1
 */
-app.get('/get-categories', (req, res) => {
+app.get('/get-categories/user/:user_id', (req, res) => {
+    const user_id = req.params.user_id;
     const filePath = TABLES_DIR + '/categories.json';
     readFile(filePath)
         .then(categories => {
-            res.send(categories);
+            const categoriesToSend = categories.filter(item => {
+                return (item.user_id == 0 || item.user_id == user_id);
+            })
+            res.send(categoriesToSend);
         })
         .catch(error => {
             res.status(500).json({ message: error.message });
@@ -153,21 +165,22 @@ app.get('/get-categories', (req, res) => {
             "name":"Categoria X",
         }
     ]
-    /get-category/1
-    req.params.id = 1
+    /get-category/user/1/category/1
+    req.params.user_id = 1
+    req.params.category_id = 1
 
 */
-app.get('/get-category/:id', (req, res) => {
-    const category_id = req.params.id;
+app.get('/get-category/user/:user_id/category/:category_id', (req, res) => {
+    const category_id = req.params.category_id;
+    const user_id = req.params.user_id;
     const filePath = TABLES_DIR + '/categories.json';
     readFile(filePath)
         .then(categories => {
-            console.log(categories);
             const category = categories.filter(item => {
-                return item.id == category_id;
+                return (item.id == category_id && (item.user_id == 0 || item.user_id == user_id));
             })
             if (category.length > 0) {
-                res.send(category);
+                res.send(category[0]);
             } else {
                 res.status(500).json({ message: `Category ${category_id} not found` });
             }
@@ -256,6 +269,125 @@ app.get('/get-user/:id', (req, res) => {
 
 })
 
+/*
+    Method: GET
+    Retorna os dados de todas as despesas pelo ID do usuário
+    Modelo JSON:
+    [
+        {
+            "id": 1,
+            "category_id":1,
+            "user_id":6,
+            "due_date":"2021-09-13",
+            "release_date":"2021-06-25",
+            "total":999.99
+        }
+    ]
+    /get-expenses/user/1/
+    req.params.id = 1
+
+*/
+app.get('/get-expenses/user/:id', (req, res) => {
+    const user_id = req.params.id;
+    const filePath = TABLES_DIR + '/expenses.json';
+    readFile(filePath)
+        .then(all_expenses => {
+            const expenses = all_expenses.filter(item => {
+                return item.user_id == user_id;
+            })
+            if (expenses.length > 0) {
+                res.send(expenses);
+            } else {
+                res.status(500).json({ message: `User ${user_id} doesn't have expenses to show` });
+            }
+        })
+        .catch(error => {
+            res.status(500).json({ message: error.message });
+        })
+
+})
+
+
+/*
+    Method: GET
+    Retorna os dados de todas as despesas pelo ID do usuário e Categoria de despesas
+    Modelo JSON:
+    [
+        {
+            "id": 1,
+            "category_id":1,
+            "user_id":6,
+            "due_date":"2021-09-13",
+            "release_date":"2021-06-25",
+            "total":999.99
+        }
+    ]
+    /get-expenses/user/1/category/3
+    req.params.id = 1
+    req.params.category = 3
+
+*/
+app.get('/get-expenses/user/:id/category/:category', (req, res) => {
+    const user_id = req.params.id;
+    const category_id = req.params.category;
+    const filePath = TABLES_DIR + '/expenses.json';
+    readFile(filePath)
+        .then(all_expenses => {
+            const expenses = all_expenses.filter(item => {
+                return (item.user_id == user_id && item.category_id == category_id);
+            })
+            if (expenses.length > 0) {
+                res.send(expenses);
+            } else {
+                res.status(500).json({ message: `User ${user_id} doesn't have expenses to show` });
+            }
+        })
+        .catch(error => {
+            res.status(500).json({ message: error.message });
+        })
+
+})
+
+/*
+    Method: GET
+    Retorna os dados de uma despesa pelo ID do usuário e ID da despesa
+    Modelo JSON:
+    [
+        {
+            "id": 1,
+            "category_id":1,
+            "user_id":6,
+            "due_date":"2021-09-13",
+            "release_date":"2021-06-25",
+            "total":999.99
+        }
+    ]
+    /get-expenses/user/1/expense/3
+    req.params.id = 1
+    req.params.expense = 3
+
+*/
+app.get('/get-expenses/user/:id/expense/:expense', (req, res) => {
+    const user_id = req.params.id;
+    const expense_id = req.params.expense;
+    const filePath = TABLES_DIR + '/expenses.json';
+    readFile(filePath)
+        .then(all_expenses => {
+            const expenses = all_expenses.filter(item => {
+                return (item.user_id == user_id && item.id == expense_id);
+            })
+            if (expenses.length > 0) {
+                res.send(expenses[0]);
+            } else {
+                res.status(500).json({ message: `User ${user_id} doesn't have expenses to show` });
+            }
+        })
+        .catch(error => {
+            res.status(500).json({ message: error.message });
+        })
+
+})
+
 
 /*
     Função que retorna o próximo ID
@@ -311,9 +443,10 @@ function validateUser(user) {
 */
 function validateCategory(category) {
     let valid = true;
-    if (typeof category.name == 'undefined') {
+    if (typeof category.name == 'undefined' || typeof category.user_id == 'undefined') {
         valid = false;
     }
+    //Criar mecanismo de consulta se o usuário é válido (Envolve async/await)
     return valid;
 }
 
