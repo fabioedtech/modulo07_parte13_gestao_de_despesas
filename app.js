@@ -17,6 +17,7 @@ app.get('/', (req, res) => {
 });
 
 
+/////////////////////////////// POSTS ///////////////////////////////
 /*
     Method: POST
     Salva usuário
@@ -36,6 +37,7 @@ app.post('/create-user', (req, res) => {
         readFile(filePath)
             .then(result => {
                 user.id = getNextId(result);
+                user.deleted = false;
                 result.push(user);
                 writeFile(filePath, result)
                     .then(result => {
@@ -64,13 +66,15 @@ app.post('/create-user', (req, res) => {
         "user_id":1
     }
 */
-app.post('/create-category', (req, res) => {
+app.post('/create-category', async (req, res) => {
     const category = req.body;
     const filePath = TABLES_DIR + '/categories.json';
-    if (validateCategory(category)) {
+    const errorlog = [];
+    if (await validateCategory(category, errorlog)) {
         readFile(filePath)
             .then(result => {
                 category.id = getNextId(result);
+                category.deleted = false;
                 result.push(category);
                 writeFile(filePath, result)
                     .then(result => {
@@ -84,7 +88,7 @@ app.post('/create-category', (req, res) => {
                 res.status(500).json({ message: error.message });
             })
     } else {
-        res.status(500).json({ message: "Category out of pattern" });
+        res.status(500).json({ message: errorlog.join(' / ') });
     }
 })
 
@@ -109,6 +113,7 @@ app.post('/create-expense', async (req, res) => {
         readFile(filePath)
             .then(result => {
                 expense.id = getNextId(result);
+                expense.deleted = false;
                 result.push(expense);
                 writeFile(filePath, result)
                     .then(result => {
@@ -125,6 +130,8 @@ app.post('/create-expense', async (req, res) => {
         res.status(500).json({ message: errorlog.join(' / ') });
     }
 })
+
+/////////////////////////////// GETS ///////////////////////////////
 
 /*
     Method: GET
@@ -145,7 +152,7 @@ app.get('/get-categories/user/:user_id', (req, res) => {
     readFile(filePath)
         .then(categories => {
             const categoriesToSend = categories.filter(item => {
-                return (item.user_id == 0 || item.user_id == user_id);
+                return (!item.deleted && (item.user_id == 0 || item.user_id == user_id));
             })
             res.send(categoriesToSend);
         })
@@ -177,7 +184,7 @@ app.get('/get-category/user/:user_id/category/:category_id', (req, res) => {
     readFile(filePath)
         .then(categories => {
             const category = categories.filter(item => {
-                return (item.id == category_id && (item.user_id == 0 || item.user_id == user_id));
+                return (!item.deleted && item.id == category_id && (item.user_id == 0 || item.user_id == user_id));
             })
             if (category.length > 0) {
                 res.send(category[0]);
@@ -210,7 +217,9 @@ app.get('/get-users', (req, res) => {
     const filePath = TABLES_DIR + '/users.json';
     readFile(filePath)
         .then(users => {
-            const usersToSend = users.map((value) => {
+            const usersToSend = users.filter((item) => {
+                return !item.deleted;
+            }).map((value) => {
                 return {
                     id: value.id,
                     name: value.name,
@@ -249,7 +258,7 @@ app.get('/get-user/:id', (req, res) => {
     readFile(filePath)
         .then(users => {
             const user = users.filter(item => {
-                return item.id == user_id;
+                return !item.deleted && item.id == user_id;
             })
             if (user.length > 0) {
                 const userToSend = {
@@ -293,7 +302,7 @@ app.get('/get-expenses/user/:id', (req, res) => {
     readFile(filePath)
         .then(all_expenses => {
             const expenses = all_expenses.filter(item => {
-                return item.user_id == user_id;
+                return !item.deleted && item.user_id == user_id;
             })
             if (expenses.length > 0) {
                 res.send(expenses);
@@ -334,7 +343,7 @@ app.get('/get-expenses/user/:id/category/:category', (req, res) => {
     readFile(filePath)
         .then(all_expenses => {
             const expenses = all_expenses.filter(item => {
-                return (item.user_id == user_id && item.category_id == category_id);
+                return (!item.deleted && item.user_id == user_id && item.category_id == category_id);
             })
             if (expenses.length > 0) {
                 res.send(expenses);
@@ -374,7 +383,7 @@ app.get('/get-expenses/user/:id/expense/:expense', (req, res) => {
     readFile(filePath)
         .then(all_expenses => {
             const expenses = all_expenses.filter(item => {
-                return (item.user_id == user_id && item.id == expense_id);
+                return (!item.deleted && item.user_id == user_id && item.id == expense_id);
             })
             if (expenses.length > 0) {
                 res.send(expenses[0]);
@@ -388,6 +397,249 @@ app.get('/get-expenses/user/:id/expense/:expense', (req, res) => {
 
 })
 
+/////////////////////////////// PUTS ///////////////////////////////
+/*
+    Method: PUT
+    Atualiza usuário
+    Modelo JSON:
+    {
+        "id": 1,
+        "name":"Fulano",
+        "email":"fulano@teste.com",
+        "phone": "99 99999 9999",
+        "password":"123"
+    }
+*/
+app.put('/update-user', (req, res) => {
+    const user = req.body;
+    const filePath = TABLES_DIR + '/users.json';
+    if (validateUser(user)) {
+        readFile(filePath)
+            .then(users => {
+                let indexOfUser = getIndexOfByID(user.id, users);
+
+                if (indexOfUser >= 0) {
+                    users[indexOfUser] = user;
+                    users[indexOfUser].deleted = false;
+
+                    writeFile(filePath, users)
+                        .then(result => {
+                            res.send(user);
+                        })
+                        .catch(error => {
+                            res.status(500).json({ message: error.message });
+                        })
+                } else {
+                    res.status(500).json({ message: `User ${user.id} not found at table /users.json` });
+                }
+            })
+            .catch(error => {
+                res.status(500).json({ message: error.message });
+            })
+    } else {
+        res.status(500).json({ message: "User out of pattern" });
+    }
+})
+
+
+/*
+    Method: PUT
+    Atualiza categorias de despesas
+    Modelo JSON:
+    {
+        "id": 1,
+        "name":"Categoria X",
+        "user_id":1
+    }
+*/
+app.put('/update-category', async (req, res) => {
+    const category = req.body;
+    const filePath = TABLES_DIR + '/categories.json';
+    const errorlog = [];
+    if (await validateCategory(category, errorlog)) {
+        readFile(filePath)
+            .then(categories => {
+                let indexOfCategory = getIndexOfByID(category.id, categories);
+
+                if (indexOfCategory >= 0) {
+                    if (categories[indexOfCategory].user_id != 0) {
+                        categories[indexOfCategory] = category;
+                        categories[indexOfCategory].deleted = false;
+
+                        writeFile(filePath, categories)
+                            .then(result => {
+                                res.send(category);
+                            })
+                            .catch(error => {
+                                res.status(500).json({ message: error.message });
+                            })
+                    } else {
+                        res.status(500).json({ message: `Category ${category.id} cannot be updated` });
+                    }
+                } else {
+                    res.status(500).json({ message: `Category ${category.id} not found at table /categories.json` });
+                }
+            })
+            .catch(error => {
+                res.status(500).json({ message: error.message });
+            })
+    } else {
+        res.status(500).json({ message: errorlog.join(' / ') });
+    }
+})
+
+/*
+    Method: PUT
+    Atualiza despesas por usuário
+    Modelo JSON:
+    {
+        "id": 1,
+        "category_id":999,
+        "user_id":999,
+        "due_date":"2021-09-13",
+        "release_date":"2021-06-25",
+        "total":999.99
+    }
+*/
+app.put('/update-expense', async (req, res) => {
+    const expense = req.body;
+    const filePath = TABLES_DIR + '/expenses.json';
+    const errorlog = [];
+    if (await validateExpense(expense, errorlog)) {
+        readFile(filePath)
+            .then(expenses => {
+                let indexOfExpense = getIndexOfByID(expense.id, expenses);
+
+                if (indexOfExpense >= 0) {
+                    if (expenses[indexOfExpense].user_id == expense.user_id) {
+                        expenses[indexOfExpense] = expense;
+                        expenses[indexOfExpense].deleted = false;
+
+                        writeFile(filePath, expenses)
+                            .then(result => {
+                                res.send(expense);
+                            })
+                            .catch(error => {
+                                res.status(500).json({ message: error.message });
+                            })
+                    } else {
+                        res.status(500).json({ message: `Expense ${expense.id} cannot be updated` });
+                    }
+                } else {
+                    res.status(500).json({ message: `Expense ${expense.id} not found at table /expenses.json` });
+                }
+            })
+            .catch(error => {
+                res.status(500).json({ message: error.message });
+            })
+    } else {
+        res.status(500).json({ message: errorlog.join(' / ') });
+    }
+})
+
+
+/////////////////////////////// PUTS ///////////////////////////////
+/*
+    Method: DELETE
+    Deleta um usuário pelo ID
+    Modelo JSON:
+    [
+        {
+            "id": 1,
+            "name":"Fulano",
+            "email":"fulano@teste.com",
+            "phone": "99 99999 9999",
+            "password":"123",
+            "deleted":true
+        }
+    ]
+    /delete-user/1
+    req.params.id = 1
+
+*/
+app.delete('/delete-user/:id', (req, res) => {
+    const user_id = req.params.id;
+    const filePath = TABLES_DIR + '/users.json';
+    readFile(filePath)
+        .then(users => {
+            let indexOfUser = getIndexOfByID(user_id, users);
+            if (indexOfUser >= 0) {
+                users[indexOfUser].deleted = true;
+                writeFile(filePath, users)
+                    .then(result => {
+                        let userToSend = {
+                            id: users[indexOfUser].id,
+                            name: users[indexOfUser].name,
+                            email: users[indexOfUser].email,
+                            phone: users[indexOfUser].phone,
+                            deleted: users[indexOfUser].deleted
+                        }
+                        res.send(userToSend);
+                    })
+                    .catch(error => {
+                        res.status(500).json({ message: error.message });
+                    })
+            } else {
+                res.status(500).json({ message: `User ${user_id} not found at table /users.json` });
+            }
+        })
+        .catch(error => {
+            res.status(500).json({ message: error.message });
+        })
+
+})
+
+/*
+    Method: DELETE
+    Deleta uma categoria pelo ID
+    Modelo JSON:
+    [
+        {
+            "id": 1,
+            "name":"Categoria X",
+            "user_id":2
+        }
+    ]
+    /delete-category/2/category/1
+    req.params.user_id = 2
+    req.params.category_id = 1
+
+*/
+app.delete('/delete-category/user/:user_id/category/:category_id', async (req, res) => {
+    const user_id = req.params.user_id;
+    const category_id = req.params.category_id;
+    const filePath = TABLES_DIR + '/categories.json';
+    const errorlog = [];
+
+    if (await canDeleteCategory(user_id, category_id, errorlog)) {
+        readFile(filePath)
+            .then(categories => {
+                let indexOfCategory = getIndexOfByID(category_id, categories);
+                if (indexOfCategory >= 0) {
+                    if (categories[indexOfCategory].user_id == user_id && categories[indexOfCategory].user_id != 0) {
+                        categories[indexOfCategory].deleted = true;
+                        writeFile(filePath, categories)
+                            .then(result => {
+                                res.send(categories[indexOfCategory]);
+                            })
+                            .catch(error => {
+                                res.status(500).json({ message: error.message });
+                            })
+                    } else {
+                        res.status(500).json({ message: `Category ${category_id} doesn't belong to user ${user_id}` });
+                    }
+                } else {
+                    res.status(500).json({ message: `Category ${category_id} not found at table /categories.json` });
+                }
+            })
+            .catch(error => {
+                res.status(500).json({ message: error.message });
+            })
+    } else {
+        res.status(500).json({ message: errorlog.join(' / ') });
+    }
+
+})
 
 /*
     Função que retorna o próximo ID
@@ -441,12 +693,18 @@ function validateUser(user) {
 /*
     Função que valida se a categoria possui todos os dados necessários
 */
-function validateCategory(category) {
+async function validateCategory(category, errorlog) {
     let valid = true;
     if (typeof category.name == 'undefined' || typeof category.user_id == 'undefined') {
         valid = false;
+        errorlog.push("Category out of pattern");
+    } else {
+        let validUser = await checkDataByID(category.user_id, '/users.json', errorlog);
+
+        if (!(validUser)) {
+            valid = false;
+        }
     }
-    //Criar mecanismo de consulta se o usuário é válido (Envolve async/await)
     return valid;
 }
 
@@ -471,14 +729,14 @@ async function validateExpense(expense, errorlog) {
 }
 
 /*
-    Função que valida se existe usuário cadastrado no sistema pelo ID
+    Função que valida se existe dado cadastrado no sistema pelo ID
 */
 async function checkDataByID(id, file, errorlog) {
     const filePath = TABLES_DIR + file;
     try {
         const data = await readFile(filePath);
         let checkObj = data.filter(item => {
-            return item.id == id;
+            return !item.deleted && item.id == id;
         });
 
         if (checkObj.length > 0) {
@@ -488,6 +746,63 @@ async function checkDataByID(id, file, errorlog) {
                 errorlog.push(`ID ${id} not found at table ${file}`);
             };
             return false;
+        }
+    } catch (error) {
+        if (typeof errorlog != 'undefined') {
+            errorlog.push(error.message)
+        }
+        return false;
+    }
+}
+
+/*
+    Função que retorna a posição do meu registro no array com base no ID
+*/
+function getIndexOfByID(id, data) {
+    let indexOfData = -1;
+    data.forEach((element, index) => {
+        if (element.id == id && !element.deleted) {
+            indexOfData = index;
+            return false;
+        }
+    });
+    return indexOfData;
+}
+
+/*
+    Função que valida se a categoria pode ou não ser deletada
+*/
+async function canDeleteCategory(user_id, category_id, errorlog) {
+    let valid = true;
+    let validUser = await checkDataByID(user_id, '/users.json', errorlog);
+    let validCategory = await checkDataByID(category_id, '/categories.json', errorlog);
+    let validEmptyCategory = await checkEmptyCategory(category_id, errorlog);
+
+    if (!(validUser && validCategory && validEmptyCategory)) {
+        valid = false;
+    }
+
+    return valid;
+}
+
+/*
+    Função que valida se existe dado cadastrado no sistema pelo ID
+*/
+async function checkEmptyCategory(category_id, errorlog) {
+    const filePath = TABLES_DIR + '/expenses.json';
+    try {
+        const data = await readFile(filePath);
+        let checkObj = data.filter(item => {
+            return !item.deleted && item.category_id == category_id;
+        });
+
+        if (checkObj.length > 0) {
+            if (typeof errorlog != 'undefined') {
+                errorlog.push(`Category ${category_id} in use at table /expenses.json`);
+            };
+            return false;
+        } else {
+            return true;
         }
     } catch (error) {
         if (typeof errorlog != 'undefined') {

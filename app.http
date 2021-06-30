@@ -17,7 +17,7 @@ Content-Type: application/json
 {
     "id": null,
     "name":"Educação",
-    "user_id":1
+    "user_id":9
 }
 ###
 POST http://localhost:3000/create-expense HTTP/1.1
@@ -59,4 +59,17 @@ GET http://localhost:3000/get-expenses/user/1/category/1
 
 GET http://localhost:3000/get-expenses/user/1/expense/2
 
+###
+
+
+PUT http://localhost:3000/update-user HTTP/1.1
+Content-Type: application/json
+
+{
+    "id": 3,
+    "name":"Ermerson",
+    "email":"fulano@teste.com",
+    "phone": "99 99999 9999",
+    "password":"123"
+}
 ###
