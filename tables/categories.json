@@ -22,5 +22,11 @@
         "name": "Estética",
         "user_id": 1,
         "deleted": false
+    },
+    {
+        "id": 5,
+        "name": "Vestuário",
+        "user_id": 5,
+        "deleted": false
     }
 ]

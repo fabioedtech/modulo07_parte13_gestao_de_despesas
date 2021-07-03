@@ -1,10 +1,12 @@
 const express = require('express');
 const app = express();
+const cors = require('cors');
 const fs = require('fs');
 const SERVER_PORT = 3000;
 const TABLES_DIR = './tables';
 
 app.use(express.json());
+app.use(cors());
 
 app.get('/', (req, res) => {
     let html = '';
@@ -129,6 +131,49 @@ app.post('/create-expense', async (req, res) => {
     } else {
         res.status(500).json({ message: errorlog.join(' / ') });
     }
+})
+
+/*
+    Method: POST
+    Valida login do usuário pelo email e senha
+    Modelo JSON:
+    {
+        "email": "fulano@teste.com",
+        "senha": "123"
+    }
+*/
+app.post('/login', (req, res) => {
+    const email = req.body.email;
+    const password = req.body.password;
+    const filePath = TABLES_DIR + '/users.json';
+
+    if (typeof email != 'undefined' && typeof password != 'undefined') {
+        readFile(filePath)
+            .then(users => {
+                let user = users.filter(user => {
+                    return !user.deleted && user.email == email && user.password == password;
+                })
+
+                if(user.length > 0) {
+                    let userToSend = {
+                        "id": user[0].id,
+                        "name": user[0].name,
+                        "email": user[0].email,
+                        "phone": user[0].phone,
+                    }
+                    res.send(userToSend);
+                } else {
+                    res.status(500).json({message: "Login failed"});
+                }
+
+            })
+            .catch(error => {
+                res.status(500).json({ message: error.message });
+            })
+    }else {
+        res.status(500).json({ message: "User out of pattern" });
+    }
+
 })
 
 /////////////////////////////// GETS ///////////////////////////////
@@ -538,7 +583,7 @@ app.put('/update-expense', async (req, res) => {
 })
 
 
-/////////////////////////////// PUTS ///////////////////////////////
+/////////////////////////////// DELETE ///////////////////////////////
 /*
     Method: DELETE
     Deleta um usuário pelo ID
@@ -638,6 +683,59 @@ app.delete('/delete-category/user/:user_id/category/:category_id', async (req, r
     } else {
         res.status(500).json({ message: errorlog.join(' / ') });
     }
+
+})
+
+/*
+    Method: DELETE
+    Deleta uma despesa pelo ID e pelo usuário
+    Modelo JSON:
+    [
+        {
+            "id": 1,
+            "category_id": 999,
+            "user_id": 999,
+            "due_date": "2021-09-13",
+            "release_date": "2021-06-25",
+            "total": 999.99,
+            "deleted": false
+    }
+    ]
+    /delete-expense/user/2/expense/1
+    req.params.user_id = 2
+    req.params.expense_id = 1
+
+*/
+app.delete('/delete-expense/user/:user_id/expense/:expense_id', (req, res) => {
+    const user_id = req.params.user_id;
+    const expense_id = req.params.expense_id;
+    const filePath = TABLES_DIR + '/expenses.json';
+
+    readFile(filePath)
+        .then(expenses => {
+            let indexOfExpense = getIndexOfByID(expense_id, expenses);
+            if (indexOfExpense >= 0) {
+                if (expenses[indexOfExpense].user_id == user_id) {
+                    expenses[indexOfExpense].deleted = true;
+
+                    writeFile(filePath, expenses)
+                        .then(() => {
+                            res.send(expenses[indexOfExpense]);
+                        })
+                        .catch(error => {
+                            res.status(500).json({ message: error.message });
+                        })
+
+                } else {
+                    res.status(500).json({ message: `User ${user_id} doesn't have any expense with ID ${expense_id}` });
+                }
+            } else {
+                res.status(500).json({ message: `User ${user_id} doesn't have any expense with ID ${expense_id}` });
+            }
+        })
+        .catch(error => {
+            res.status(500).json({ message: error.message });
+        })
 
 })
 
