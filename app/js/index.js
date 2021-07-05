@@ -63,7 +63,6 @@ function registerUser() {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
                     document.getElementById('response').innerHTML = '<h3>User created with success!</h3>';
-                    console.log(xhr.responseText);
                 } else if (xhr.status === 500) {
                     document.getElementById('response').innerHTML = '<h3>Create user failed!</h3>';
                 } else {
@@ -79,7 +78,7 @@ function registerUser() {
     }
     return false;
 }
-//document.getElementById('btn-submit').addEventListener('click',registerUser);
+document.getElementById('btn-submit').addEventListener('click',registerUser);
 
 
 /*
@@ -147,7 +146,7 @@ function createExpense() {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
                     document.getElementById('response').innerHTML = '<h3>Expense created with success!</h3>';
-                    console.log(xhr.responseText);
+                    changeExpensesCategory();
                 } else if (xhr.status === 500) {
                     document.getElementById('response').innerHTML = '<h3>Create expense failed!</h3>';
                 } else {
@@ -162,7 +161,7 @@ function createExpense() {
     }
 
 }
-//document.getElementById('btn-create-expense').addEventListener('click',createExpense);
+document.getElementById('btn-create-expense').addEventListener('click',createExpense);
 
 
 /*
@@ -201,7 +200,7 @@ function createCategory() {
             if (xhr.status === 200) {
                 document.getElementById('response').innerHTML = '<h3>Category created with success!</h3>';
                 document.getElementById('input-name').value = '';
-                console.log(xhr.responseText);
+                loadCategories();
             } else if (xhr.status === 500) {
                 document.getElementById('response').innerHTML = '<h3>Create category failed!</h3>';
             } else {
@@ -211,7 +210,7 @@ function createCategory() {
     }
 
 }
-//document.getElementById('btn-create-category').addEventListener('click', createCategory);
+document.getElementById('btn-create-category').addEventListener('click', createCategory);
 
 /*
     Função que executa chamada da API para consulta das categorias
@@ -235,9 +234,8 @@ function getCategories() {
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
+                    categoryList.splice(0,categoryList.length);
                     categoryList.push(...JSON.parse(xhr.responseText));
-                    console.log(categoryList);
-                    console.log(xhr.responseText);
                     resolve(true);
                 } else if (xhr.status === 500) {
                     alert(`Cannot get categories from User ${user_id}`);
@@ -256,12 +254,18 @@ function getCategories() {
     Função que executa chamada da API para consulta das despesas
     /get-expenses/user/1
 */
-function getExpenses() {
+function getExpenses(category_id = "all") {
     //1 -> Ler ID do usuário
     const user_id = document.getElementById('user_id').value;
+    let url = '';
 
     //2 -> Compor a minha url de acordo com o padrão estabelecido pela API
-    const url = urlAPI + `/get-expenses/user/${user_id}`;
+    if(category_id == "all"){
+        url = urlAPI + `/get-expenses/user/${user_id}`;
+    }else{
+        url = urlAPI + `/get-expenses/user/${user_id}/category/${category_id}`;
+    }
+    
 
     //3 -> Executar requisição
     return new Promise((resolve, reject) => {
@@ -274,9 +278,8 @@ function getExpenses() {
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
+                    expenseList.splice(0,expenseList.length);
                     expenseList.push(...JSON.parse(xhr.responseText));
-                    console.log(expenseList);
-                    console.log(xhr.responseText);
                     resolve(true);
                 } else if (xhr.status === 500) {
                     alert(`Cannot get expenses from User ${user_id}`);
@@ -296,12 +299,13 @@ function getExpenses() {
     Função que executa o carregamento do select das categorias no painel principal
 */
 function loadCategories() {
-    let htmlOptions = '<option selected value="-1">All Categories</option>';
+    let htmlOptions = '<option selected value="all">All Categories</option>';
     if (categoryList.length > 0) {
         categoryList.forEach(category => {
             htmlOptions += `<option value="${category.id}">${category.name}</option>`;
         });
         document.getElementById("categories").innerHTML = htmlOptions;
+        document.getElementById("category").innerHTML = htmlOptions;
     }
 }
 
@@ -369,4 +373,17 @@ async function loadUserData() {
 
 }
 
-document.getElementById('add-expense').addEventListener('click', loadUserData);
+/*
+    Executa o carregamento das despesas a partir da  mudança da categoria na barra de títulos de despesas
+*/
+async function changeExpensesCategory(){
+    const category_id = document.getElementById('categories').value;
+    try{
+        let canExecExpenses = await getExpenses(category_id);
+        if(canExecExpenses) loadExpenses();
+    }catch(error){
+        console.log('Falhou a troca de categoria');
+    }
+}
+
+document.getElementById('categories').addEventListener('change',changeExpensesCategory);
