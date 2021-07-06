@@ -182,6 +182,82 @@
   
         </div>
       </div>
+      <!-- Modal to load data from expense to update -->
+      <div id="modal-update-expense" class="modal-register hidden" style="display: none">
+        <h2 id="expense-title">
+          Update Expense
+        </h2>
+        <div>
+          <input id="expense_id" type="hidden" value="" />
+          <div class="input-container">
+            <label for="category_update" class="input-label">Category:</label>
+            <select id="category_update">
+              <option>-</option>
+              <option value="1">Alimentação</option>
+              <option value="2">Farmácia</option>
+              <option value="3">Lazer</option>
+            </select>
+          </div>
+          <div class="input-container">
+            <label for="input-release-update" class="input-label">Release Date:</label>
+            <input type="date" id="input-release-update" name="input-release-update" placeholder="">
+          </div>
+          <div class="input-container">
+            <label for="expiration-date-update" class="input-label">Expiration Date:</label>
+            <input type="date" id="input-expiration-update" name="expiration-date-update" placeholder="">
+          </div>
+          <div class="input-container">
+            <label for="total-update" class="input-label">Total:</label>
+            <input type="number" id="input-total-update" name="total-update" scale="0.01" placeholder="Digite um valor">
+          </div>
+        </div>
+  
+ 
+        <div class="btns">
+          <button id="btn-update-expense" class="btn-create">Update</button>
+        </div>
+        <div id="response-update">
+  
+        </div>
+      </div>
+       <!-- Modal to load data from expense to delete -->
+       <div id="modal-delete-expense" class="modal-register hidden" style="display: none">
+        <h2 id="expense-title">
+          Do you really want to delete that expense?
+        </h2>
+        <div>
+          <input id="expense_id_delete" type="hidden" value="" />
+          <div class="input-container">
+            <label for="category_delete" class="input-label">Category:</label>
+            <select disabled id="category_delete">
+              <option>-</option>
+              <option value="1">Alimentação</option>
+              <option value="2">Farmácia</option>
+              <option value="3">Lazer</option>
+            </select>
+          </div>
+          <div class="input-container">
+            <label for="input-release-delete" class="input-label">Release Date:</label>
+            <input readonly disabled type="date" id="input-release-delete" name="input-release-delete" placeholder="">
+          </div>
+          <div class="input-container">
+            <label for="expiration-date-delete" class="input-label">Expiration Date:</label>
+            <input readonly disabled type="date" id="input-expiration-delete" name="expiration-date-delete" placeholder="">
+          </div>
+          <div class="input-container">
+            <label for="total-delete" class="input-label">Total:</label>
+            <input readonly disabled type="number" id="input-total-delete" name="total-delete" scale="0.01" placeholder="Digite um valor">
+          </div>
+        </div>
+  
+ 
+        <div class="btns">
+          <button id="btn-delete-expense" class="btn-create">Delete</button>
+        </div>
+        <div id="response-delete">
+  
+        </div>
+      </div>
       <!-- modal Add Category-->
       <div id="modal-register-category" class="modal-register hidden" style="display: none">
   

@@ -78,7 +78,7 @@ function registerUser() {
     }
     return false;
 }
-document.getElementById('btn-submit').addEventListener('click',registerUser);
+document.getElementById('btn-submit').addEventListener('click', registerUser);
 
 
 /*
@@ -161,8 +161,95 @@ function createExpense() {
     }
 
 }
-document.getElementById('btn-create-expense').addEventListener('click',createExpense);
+document.getElementById('btn-create-expense').addEventListener('click', createExpense);
 
+
+/*
+    Função que executa chamada da API para atualização de uma despesa
+    {
+        "id": 9,
+        "category_id":999,
+        "user_id":999,
+        "due_date":"2021-09-13",
+        "release_date":"2021-06-25",
+        "total":999.99
+    }
+*/
+function updateExpense() {
+    let category_id = document.getElementById("category_update").value;
+    let expense_id = Number(document.getElementById("expense_id").value);
+    let user_id = Number(document.getElementById("user_id").value);
+    let release_date = document.getElementById("input-release-update").value;
+    let due_date = document.getElementById("input-expiration-update").value;
+    let total = Number(document.getElementById("input-total-update").value);
+    const errorLog = [];
+
+    if (validExpense(category_id, release_date, due_date, total, errorLog)) {
+        const expense = {
+            "id": expense_id,
+            "category_id": category_id,
+            "user_id": user_id,
+            "due_date": due_date,
+            "release_date": release_date,
+            "total": total
+        }
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", urlAPI + '/update-expense');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    document.getElementById('response-update').innerHTML = '<h3>Expense updated with success!</h3>';
+                    changeExpensesCategory();
+                } else if (xhr.status === 500) {
+                    document.getElementById('response-update').innerHTML = '<h3>Update expense failed!</h3>';
+                } else {
+                    document.getElementById('response-update').innerHTML = '<h3>The system is out, please try later!</h3>';
+                }
+            }
+        }
+
+        xhr.send(JSON.stringify(expense));
+    } else {
+        alert(errorLog.join('\n'));
+    }
+
+}
+document.getElementById('btn-update-expense').addEventListener('click', updateExpense);
+
+
+/*
+    Função que executa chamada da API para deleção de uma despesa
+    
+    /delete-expense/user/:user_id/expense/:expense_id
+*/
+function deleteExpense() {
+
+    let expense_id = document.getElementById("expense_id_delete").value;
+    let user_id = document.getElementById("user_id").value;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("DELETE", urlAPI + `/delete-expense/user/${user_id}/expense/${expense_id}`);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                document.getElementById('response-delete').innerHTML = '<h3>Expense deleted with success!</h3>';
+                changeExpensesCategory();
+            } else if (xhr.status === 500) {
+                document.getElementById('response-delete').innerHTML = '<h3>Delete expense failed!</h3>';
+            } else {
+                document.getElementById('response-delete').innerHTML = '<h3>The system is out, please try later!</h3>';
+            }
+        }
+    }
+
+    xhr.send(null);
+} 
+
+document.getElementById('btn-delete-expense').addEventListener('click', deleteExpense);
 
 /*
     Função que executa chamada da API para registro de categoria
@@ -234,7 +321,7 @@ function getCategories() {
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    categoryList.splice(0,categoryList.length);
+                    categoryList.splice(0, categoryList.length);
                     categoryList.push(...JSON.parse(xhr.responseText));
                     resolve(true);
                 } else if (xhr.status === 500) {
@@ -260,12 +347,12 @@ function getExpenses(category_id = "all") {
     let url = '';
 
     //2 -> Compor a minha url de acordo com o padrão estabelecido pela API
-    if(category_id == "all"){
+    if (category_id == "all") {
         url = urlAPI + `/get-expenses/user/${user_id}`;
-    }else{
+    } else {
         url = urlAPI + `/get-expenses/user/${user_id}/category/${category_id}`;
     }
-    
+
 
     //3 -> Executar requisição
     return new Promise((resolve, reject) => {
@@ -278,7 +365,7 @@ function getExpenses(category_id = "all") {
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
-                    expenseList.splice(0,expenseList.length);
+                    expenseList.splice(0, expenseList.length);
                     expenseList.push(...JSON.parse(xhr.responseText));
                     resolve(true);
                 } else if (xhr.status === 500) {
@@ -306,27 +393,29 @@ function loadCategories() {
         });
         document.getElementById("categories").innerHTML = htmlOptions;
         document.getElementById("category").innerHTML = htmlOptions;
+        document.getElementById("category_update").innerHTML = htmlOptions;
+        document.getElementById("category_delete").innerHTML = htmlOptions;
     }
 }
 
 /*
     Função que recupera o nome da categoria pelo ID dela
 */
-function getCategoryNameByID(category_id){
+function getCategoryNameByID(category_id) {
     let category = [];
 
-    if(categoryList.length > 0){
+    if (categoryList.length > 0) {
         category = categoryList.filter(item => {
             return item.id == category_id;
         });
-        
-        if(category.length > 0){
+
+        if (category.length > 0) {
             return category[0].name;
         }
-    } 
+    }
 
     return 'N/A';
-    
+
 }
 
 /*
@@ -335,18 +424,18 @@ function getCategoryNameByID(category_id){
 function loadExpenses() {
     let htmlExpenses = '';
     if (expenseList.length > 0) {
-        expenseList.forEach(expense => {
+        expenseList.forEach((expense, index) => {
             htmlExpenses += '<div class="expenses">';
-            htmlExpenses += '    <span class="">'+ expense.id +'</span>';
-            htmlExpenses += '    <span class="">'+ getCategoryNameByID(expense.category_id) +'</span>';
-            htmlExpenses += '    <span class="">'+ expense.release_date +'</span>';
-            htmlExpenses += '    <span class="">'+ expense.due_date +'</span>';
-            htmlExpenses += '    <span class="">R$'+ expense.total +'</span>';
+            htmlExpenses += '    <span class="">' + expense.id + '</span>';
+            htmlExpenses += '    <span class="">' + getCategoryNameByID(expense.category_id) + '</span>';
+            htmlExpenses += '    <span class="">' + expense.release_date + '</span>';
+            htmlExpenses += '    <span class="">' + expense.due_date + '</span>';
+            htmlExpenses += '    <span class="">R$' + expense.total + '</span>';
             htmlExpenses += '    <div class="btn-expense">';
-            htmlExpenses += '        <button id="btn-edit">';
+            htmlExpenses += '        <button id="btn-edit" onclick="loadExpenseData(' + index + ')">';
             htmlExpenses += '            <img src="./img/edit.svg" />';
             htmlExpenses += '        </button>';
-            htmlExpenses += '        <button id="btn-delete">';
+            htmlExpenses += '        <button id="btn-delete" onclick="loadExpenseDeleteData(' + index + ')">';
             htmlExpenses += '            <img src="./img/trash.svg">';
             htmlExpenses += '        </button>';
             htmlExpenses += '    </div>';
@@ -366,7 +455,7 @@ async function loadUserData() {
         let canExecExpenses = await getExpenses();
 
         if (canExecCategories) loadCategories();
-        if(canExecExpenses) loadExpenses();
+        if (canExecExpenses) loadExpenses();
     } catch (error) {
         console.log('Falhou');
     }
@@ -376,14 +465,14 @@ async function loadUserData() {
 /*
     Executa o carregamento das despesas a partir da  mudança da categoria na barra de títulos de despesas
 */
-async function changeExpensesCategory(){
+async function changeExpensesCategory() {
     const category_id = document.getElementById('categories').value;
-    try{
+    try {
         let canExecExpenses = await getExpenses(category_id);
-        if(canExecExpenses) loadExpenses();
-    }catch(error){
+        if (canExecExpenses) loadExpenses();
+    } catch (error) {
         console.log('Falhou a troca de categoria');
     }
 }
 
-document.getElementById('categories').addEventListener('change',changeExpensesCategory);
+document.getElementById('categories').addEventListener('change', changeExpensesCategory);

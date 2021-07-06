@@ -7,6 +7,8 @@ const painelExpenseContent = document.getElementById('painel-content');
 const modalLogin = document.getElementById('modal-login');
 const modalRegister = document.getElementById('modal-register');
 const modalRegisterExpense = document.getElementById('modal-register-expense');
+const modalUpdateExpense = document.getElementById('modal-update-expense');
+const modalDeleteExpense = document.getElementById('modal-delete-expense');
 const modalRegisterCategory = document.getElementById('modal-register-category');
 
 
@@ -72,6 +74,8 @@ function signUp() {
 function createAddExpense() {
     painelExpenseContent.style.display = 'none';
     modalRegisterExpense.style.display = 'flex';
+    modalUpdateExpense.style.display = 'none';
+    modalDeleteExpense.style.display = 'none';
     modalRegisterCategory.style.display = 'none';
 
 
@@ -79,11 +83,55 @@ function createAddExpense() {
 function createAddCategories() {
     painelExpenseContent.style.display = 'none';
     modalRegisterExpense.style.display = 'none';
+    modalUpdateExpense.style.display = 'none';
+    modalDeleteExpense.style.display = 'none';
     modalRegisterCategory.style.display = 'flex';
 
 }
 function backtoPainel() {
     painelExpenseContent.style.display = 'flex';
+    modalUpdateExpense.style.display = 'none';
+    modalDeleteExpense.style.display = 'none';
+    modalRegisterExpense.style.display = 'none';
+    modalRegisterCategory.style.display = 'none';
+
+}
+
+/*
+    Função que carrega os dados da despesa para o formulário de edição antes de fazer o PUT
+*/
+function loadExpenseData(expense_index) {
+
+    document.getElementById('expense_id').value = expenseList[expense_index].id;
+    document.getElementById('category_update').value = expenseList[expense_index].category_id;
+    document.getElementById('input-release-update').value = expenseList[expense_index].release_date;
+    document.getElementById('input-expiration-update').value = expenseList[expense_index].due_date;
+    document.getElementById('input-total-update').value = expenseList[expense_index].total;
+    document.getElementById('response-update').innerHTML = '';
+
+    painelExpenseContent.style.display = 'none';
+    modalUpdateExpense.style.display = 'flex';
+    modalDeleteExpense.style.display = 'none';
+    modalRegisterExpense.style.display = 'none';
+    modalRegisterCategory.style.display = 'none';
+
+}
+
+/*
+    Função que carrega os dados da despesa para o formulário de visualização antes de fazer o DELETE
+*/
+function loadExpenseDeleteData(expense_index) {
+
+    document.getElementById('expense_id_delete').value = expenseList[expense_index].id;
+    document.getElementById('category_delete').value = expenseList[expense_index].category_id;
+    document.getElementById('input-release-delete').value = expenseList[expense_index].release_date;
+    document.getElementById('input-expiration-delete').value = expenseList[expense_index].due_date;
+    document.getElementById('input-total-delete').value = expenseList[expense_index].total;
+    document.getElementById('response-delete').innerHTML = '';
+
+    painelExpenseContent.style.display = 'none';
+    modalUpdateExpense.style.display = 'none';
+    modalDeleteExpense.style.display = 'flex';
     modalRegisterExpense.style.display = 'none';
     modalRegisterCategory.style.display = 'none';
 
